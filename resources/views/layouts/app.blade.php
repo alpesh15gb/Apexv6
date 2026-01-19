@@ -58,19 +58,21 @@
 
                 <!-- Search Bar -->
                 <div class="flex-none hidden md:block">
-                    <div class="form-control">
-                        <div class="input-group">
-                            <input type="text" placeholder="Search employees..."
-                                class="input input-bordered input-sm w-64" />
-                            <button class="btn btn-sm btn-square btn-ghost">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </button>
+                    <form action="{{ route('admin.employees.index') }}" method="GET">
+                        <div class="form-control">
+                            <div class="input-group">
+                                <input type="text" name="search" placeholder="Search employees..."
+                                    value="{{ request('search') }}" class="input input-bordered input-sm w-64" />
+                                <button type="submit" class="btn btn-sm btn-square btn-ghost">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
 
                 <div class="flex-none gap-2">
