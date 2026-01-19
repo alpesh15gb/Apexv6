@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Grant super_admin all permissions
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            if ($user->role === 'super_admin') {
+                return true;
+            }
+        });
     }
 }
