@@ -1,16 +1,24 @@
 <x-app-layout>
-    @section('title', 'Monthly Attendance Matrix')
+    @section('title', 'Monthly Status Report')
 
     <x-slot name="header">
-        Monthly Attendance Matrix
+        Monthly Status Report (Detailed Work Duration)
     </x-slot>
 
     <x-slot name="actions">
-        <div class="flex gap-2">
-            <form method="GET" class="flex gap-2 items-end">
-                <div class="form-control w-full max-w-xs">
-                    <label class="label"><span class="label-text">Month</span></label>
-                    <select name="month" class="select select-bordered select-sm">
+        <div class="flex flex-wrap gap-2 justify-end print:hidden">
+            <form method="GET" class="flex flex-wrap gap-2 items-end">
+                <div class="form-control w-24">
+                    <label class="label text-xs py-1"><span class="label-text">Year</span></label>
+                    <select name="year" class="select select-bordered select-xs">
+                        @for($y = now()->year; $y >= 2024; $y--)
+                            <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="form-control w-28">
+                    <label class="label text-xs py-1"><span class="label-text">Month</span></label>
+                    <select name="month" class="select select-bordered select-xs">
                         @for($m = 1; $m <= 12; $m++)
                             <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
                                 {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -18,18 +26,23 @@
                         @endfor
                     </select>
                 </div>
-                <div class="form-control w-full max-w-xs">
-                    <label class="label"><span class="label-text">Year</span></label>
-                    <select name="year" class="select select-bordered select-sm">
-                        @for($y = now()->year; $y >= 2024; $y--)
-                            <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
+
+                <div class="form-control w-32">
+                    <label class="label text-xs py-1"><span class="label-text">Department</span></label>
+                    <select name="department_id" class="select select-bordered select-xs">
+                        <option value="">All</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}" {{ $departmentId == $dept->id ? 'selected' : '' }}>
+                                {{ $dept->name }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
-                <div class="form-control w-full max-w-xs">
-                    <label class="label"><span class="label-text">Location</span></label>
-                    <select name="location_id" class="select select-bordered select-sm">
-                        <option value="">All Locations</option>
+
+                <div class="form-control w-32">
+                    <label class="label text-xs py-1"><span class="label-text">Location</span></label>
+                    <select name="location_id" class="select select-bordered select-xs">
+                        <option value="">All</option>
                         @foreach($locations as $location)
                             <option value="{{ $location->id }}" {{ $locationId == $location->id ? 'selected' : '' }}>
                                 {{ $location->name }}
@@ -37,74 +50,180 @@
                         @endforeach
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                <button type="submit" class="btn btn-primary btn-xs">Filter</button>
             </form>
 
-            <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline btn-sm gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+            <button onclick="window.print()" class="btn btn-secondary btn-xs gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
-                Export CSV
-            </a>
+                Print
+            </button>
         </div>
     </x-slot>
 
-    <div class="card bg-base-100 shadow-xl overflow-x-auto">
-        <div class="card-body p-4">
-            <table class="table table-xs table-pin-rows table-pin-cols">
-                <thead>
-                    <tr>
-                        <th class="bg-base-200 z-20">Employee</th>
-                        @for($d = 1; $d <= $daysInMonth; $d++)
-                            <th class="text-center w-8 bg-base-200">{{ $d }}</th>
-                        @endfor
-                        <th class="bg-base-200 text-center">P</th>
-                        <th class="bg-base-200 text-center">A</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($matrix as $row)
-                        <tr>
-                            <td class="bg-base-100 font-bold sticky left-0 z-10">{{ $row->user->name }}</td>
-                            @foreach($row->days as $day => $status)
-                                @php
-                                    $color = match ($status) {
-                                        'P' => 'bg-success/20 text-success-content',
-                                        'L' => 'bg-warning/20 text-warning-content',
-                                        'HD' => 'bg-info/20 text-info-content',
-                                        'A' => 'bg-error/20 text-error-content',
-                                        'LV' => 'bg-secondary/20 text-secondary-content',
-                                        'WO' => 'bg-base-200 text-base-content/50',
-                                        default => ''
-                                    };
-                                @endphp
-                                <td class="text-center font-mono border-l border-base-200 {{ $color }}">
-                                    {{ $status }}
-                                </td>
-                            @endforeach
-                            <td class="text-center font-bold text-success">{{ $row->present_count }}</td>
-                            <td class="text-center font-bold text-error">{{ $row->absent_count }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ $daysInMonth + 3 }}" class="text-center py-8 text-base-content/60">
-                                No employees found.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <!-- Report Container -->
+    <div class="bg-white p-4 min-w-[1200px] overflow-x-auto print:p-0 print:overflow-visible">
 
-    <div class="mt-4 flex gap-4 text-xs">
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-success/20"></span> P: Present</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-warning/20"></span> L: Late</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-info/20"></span> HD: Half Day</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-error/20"></span> A: Absent</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-secondary/20"></span> LV: Leave</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 bg-base-200"></span> WO: Week Off</div>
+        <!-- Report Header -->
+        <div class="text-center mb-6 border-b pb-4">
+            <h1 class="text-xl font-bold uppercase text-gray-800">Monthly Status Report (Detailed Work Duration)</h1>
+            <div class="text-sm font-medium text-gray-600 mt-1">
+                {{ date('M d Y', mktime(0, 0, 0, $month, 1, $year)) }} To
+                {{ date('M d Y', mktime(0, 0, 0, $month, $daysInMonth, $year)) }}
+            </div>
+            <div class="flex justify-between items-end mt-4 text-xs font-mono text-gray-500">
+                <div>Company: KS</div>
+                <div>Printed On: {{ now()->format('M d Y H:i') }}</div>
+            </div>
+        </div>
+
+        @php
+            // Helper to get day name initials for header
+            $headerDays = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $ts = mktime(0, 0, 0, $month, $d, $year);
+                $headerDays[$d] = [
+                    'num' => $d,
+                    'name' => date('D', $ts) // Mon, Tue...
+                ];
+            }
+        @endphp
+
+        <!-- Main Content -->
+        @forelse($matrix as $deptName => $employees)
+            <div class="mb-6 break-inside-avoid">
+                <!-- Department Header -->
+                <div class="font-bold text-gray-800 mb-2 border-b-2 border-gray-800 pb-1">
+                    Department: {{ $deptName }}
+                </div>
+
+                @foreach($employees as $row)
+                    <div class="mb-8 border border-gray-300 p-2 rounded-sm break-inside-avoid">
+                        <!-- Employee Header -->
+                        <div class="flex flex-col md:flex-row justify-between mb-2 text-xs">
+                            <div class="font-bold text-gray-800 w-64">
+                                Employee: {{ $row->user->employee_id }} : {{ $row->user->name }}
+                            </div>
+                            <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[10px] text-gray-600">
+                                <div>Total Work Duration: <span
+                                        class="font-bold text-gray-900">{{ $row->formatted_summary['duration'] }} Hrs.</span>
+                                </div>
+                                <div>Total OT: <span class="font-bold text-gray-900">{{ $row->formatted_summary['ot'] }}
+                                        Hrs.</span></div>
+                                <div>Present: <span class="font-bold text-gray-900">{{ $row->summary->present }}</span></div>
+                                <div>Absent: <span class="font-bold text-gray-900">{{ $row->summary->absent }}</span></div>
+                                <div>WeeklyOff: <span class="font-bold text-gray-900">{{ $row->summary->weekly_off }}</span>
+                                </div>
+                                <div>Holidays: <span class="font-bold text-gray-900">{{ $row->summary->holidays }}</span></div>
+                                <div>Leaves Taken: <span class="font-bold text-gray-900">{{ $row->summary->leaves }}</span>
+                                </div>
+                                <div>LateBy Hrs: <span
+                                        class="font-bold text-gray-900">{{ $row->formatted_summary['late_hours'] }}</span></div>
+                                <div>LateBy Days: <span class="font-bold text-gray-900">{{ $row->summary->late_days }}</span>
+                                </div>
+                                <div>EarlyBy Hrs: <span
+                                        class="font-bold text-gray-900">{{ $row->formatted_summary['early_hours'] }}</span>
+                                </div>
+                                <div>EarlyGoing Days: <span
+                                        class="font-bold text-gray-900">{{ $row->summary->early_days }}</span></div>
+                                <div>Total Shift Count: <span
+                                        class="font-bold text-gray-900">{{ $row->summary->shift_count }}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse text-[10px] border border-gray-400">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 w-20 text-left">Days</th>
+                                        @foreach($headerDays as $hd)
+                                            <th class="border border-gray-400 px-1 py-0.5 w-10 text-center font-normal">
+                                                <div>{{ $hd['num'] }}</div>
+                                                <div>{{ substr($hd['name'], 0, 2) }}</div>
+                                            </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Row: Status -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Status</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                                            <td
+                                                                class="border border-gray-400 text-center font-bold
+                                                                            {{ $row->days[$d]->status == 'P' ? 'text-green-700' :
+                                            ($row->days[$d]->status == 'A' ? 'text-red-600' :
+                                                ($row->days[$d]->status == 'WO' ? 'text-gray-400' : 'text-blue-600')) }}">
+                                                                {{ $row->days[$d]->status }}
+                                                            </td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: InTime -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">InTime</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center">{{ $row->days[$d]->in_time }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: OutTime -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">OutTime</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center">{{ $row->days[$d]->out_time }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: Duration -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Duration</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center">{{ $row->days[$d]->duration }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: Late By -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Late By</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center text-red-500">
+                                                {{ $row->days[$d]->late_by }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: Early By -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Early By</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center text-red-500">
+                                                {{ $row->days[$d]->early_by }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: OT -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">OT</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center">{{ $row->days[$d]->ot }}</td>
+                                        @endfor
+                                    </tr>
+                                    <!-- Row: Shift -->
+                                    <tr>
+                                        <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Shift</th>
+                                        @for($d = 1; $d <= $daysInMonth; $d++)
+                                            <td class="border border-gray-400 text-center text-gray-500">{{ $row->days[$d]->shift }}
+                                            </td>
+                                        @endfor
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @empty
+            <div class="text-center py-12 text-gray-500">
+                No data found for the selected criteria.
+            </div>
+        @endforelse
     </div>
 </x-app-layout>
