@@ -5,6 +5,68 @@
         Monthly Status Report (Detailed Work Duration)
     </x-slot>
 
+    <style>
+        @media print {
+            @page {
+                size: landscape;
+                margin: 5mm;
+            }
+
+            body {
+                background: white !important;
+                font-size: 10px;
+            }
+
+            .drawer,
+            .drawer-content {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .drawer-side,
+            .navbar,
+            footer,
+            .print\:hidden {
+                display: none !important;
+            }
+
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .bg-base-200 {
+                background: white !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .overflow-x-auto {
+                overflow: visible !important;
+            }
+
+            table {
+                width: 100% !important;
+                border-collapse: collapse;
+                font-size: 9px !important;
+            }
+
+            th,
+            td {
+                border-color: #000 !important;
+                padding: 2px !important;
+            }
+
+            h1 {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+
     <x-slot name="actions">
         <div class="flex flex-wrap gap-2 justify-end print:hidden">
             <form method="GET" class="flex flex-wrap gap-2 items-end">
@@ -155,7 +217,7 @@
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                                             <td
                                                                 class="border border-gray-400 text-center font-bold
-                                                                            {{ $row->days[$d]->status == 'P' ? 'text-green-700' :
+                                                                                                        {{ $row->days[$d]->status == 'P' ? 'text-green-700' :
                                             ($row->days[$d]->status == 'A' ? 'text-red-600' :
                                                 ($row->days[$d]->status == 'WO' ? 'text-gray-400' : 'text-blue-600')) }}">
                                                                 {{ $row->days[$d]->status }}
@@ -188,7 +250,8 @@
                                         <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Late By</th>
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                             <td class="border border-gray-400 text-center text-red-500">
-                                                {{ $row->days[$d]->late_by }}</td>
+                                                {{ $row->days[$d]->late_by }}
+                                            </td>
                                         @endfor
                                     </tr>
                                     <!-- Row: Early By -->
@@ -196,7 +259,8 @@
                                         <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Early By</th>
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                             <td class="border border-gray-400 text-center text-red-500">
-                                                {{ $row->days[$d]->early_by }}</td>
+                                                {{ $row->days[$d]->early_by }}
+                                            </td>
                                         @endfor
                                     </tr>
                                     <!-- Row: OT -->
