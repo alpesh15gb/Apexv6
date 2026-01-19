@@ -5,6 +5,7 @@
         Monthly Status Report (Detailed Work Duration)
     </x-slot>
 
+    <!-- Print Styles -->
     <style>
         @media print {
             @page {
@@ -12,31 +13,41 @@
                 margin: 5mm;
             }
 
-            body {
-                background: white !important;
-                font-size: 10px;
+            /* Nuclear Hiding of Sidebar & Structure */
+            .drawer-side,
+            .drawer-toggle,
+            .navbar,
+            footer,
+            aside,
+            .menu,
+            .print\:hidden,
+            label[for="sidebar-drawer"] {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
             }
 
+            /* Reset Layout Containers to Full Width */
+            html,
+            body,
             .drawer,
-            .drawer-content {
+            .drawer-content,
+            main {
                 display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: none !important;
+                background: white !important;
                 height: auto !important;
                 overflow: visible !important;
             }
 
-            .drawer-side,
-            .navbar,
-            footer,
-            .print\:hidden {
-                display: none !important;
-            }
-
-            main {
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-
-            .bg-base-200 {
+            /* Reset Content Styles */
+            .bg-base-200,
+            .bg-base-100 {
                 background: white !important;
             }
 
@@ -49,6 +60,24 @@
                 overflow: visible !important;
             }
 
+            /* Typography Scale */
+            body {
+                font-size: 10px;
+                color: black;
+            }
+
+            h1 {
+                font-size: 16px !important;
+                color: black !important;
+            }
+
+            .text-gray-500,
+            .text-gray-600,
+            .text-base-content {
+                color: black !important;
+            }
+
+            /* Table Layout */
             table {
                 width: 100% !important;
                 border-collapse: collapse;
@@ -61,8 +90,9 @@
                 padding: 2px !important;
             }
 
-            h1 {
-                font-size: 16px !important;
+            /* Avoid page breaks inside employee blocks */
+            .break-inside-avoid {
+                break-inside: avoid;
             }
         }
     </style>
@@ -127,7 +157,7 @@
     </x-slot>
 
     <!-- Report Container -->
-    <div class="bg-white p-4 min-w-[1200px] overflow-x-auto print:p-0 print:overflow-visible">
+    <div class="bg-white p-4 min-w-[1200px] overflow-x-auto print:p-0 print:overflow-visible print:min-w-0">
 
         <!-- Report Header -->
         <div class="text-center mb-6 border-b pb-4">
@@ -163,7 +193,7 @@
                 </div>
 
                 @foreach($employees as $row)
-                    <div class="mb-8 border border-gray-300 p-2 rounded-sm break-inside-avoid">
+                    <div class="mb-4 border border-gray-300 p-2 rounded-sm break-inside-avoid">
                         <!-- Employee Header -->
                         <div class="flex flex-col md:flex-row justify-between mb-2 text-xs">
                             <div class="font-bold text-gray-800 w-64">
@@ -197,7 +227,7 @@
                         </div>
 
                         <!-- Data Table -->
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto print:overflow-visible">
                             <table class="w-full border-collapse text-[10px] border border-gray-400">
                                 <thead class="bg-gray-100">
                                     <tr>
@@ -217,7 +247,7 @@
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                                             <td
                                                                 class="border border-gray-400 text-center font-bold
-                                                                                                        {{ $row->days[$d]->status == 'P' ? 'text-green-700' :
+                                                                            {{ $row->days[$d]->status == 'P' ? 'text-green-700' :
                                             ($row->days[$d]->status == 'A' ? 'text-red-600' :
                                                 ($row->days[$d]->status == 'WO' ? 'text-gray-400' : 'text-blue-600')) }}">
                                                                 {{ $row->days[$d]->status }}
@@ -250,8 +280,7 @@
                                         <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Late By</th>
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                             <td class="border border-gray-400 text-center text-red-500">
-                                                {{ $row->days[$d]->late_by }}
-                                            </td>
+                                                {{ $row->days[$d]->late_by }}</td>
                                         @endfor
                                     </tr>
                                     <!-- Row: Early By -->
@@ -259,8 +288,7 @@
                                         <th class="border border-gray-400 px-1 py-0.5 text-left bg-gray-50">Early By</th>
                                         @for($d = 1; $d <= $daysInMonth; $d++)
                                             <td class="border border-gray-400 text-center text-red-500">
-                                                {{ $row->days[$d]->early_by }}
-                                            </td>
+                                                {{ $row->days[$d]->early_by }}</td>
                                         @endfor
                                     </tr>
                                     <!-- Row: OT -->
