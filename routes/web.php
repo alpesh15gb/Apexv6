@@ -59,6 +59,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin Routes
     Route::prefix('admin')->name('admin.')->group(function () {
         // Employee Management
+        Route::get('/employees/bulk', [EmployeeController::class, 'bulkIndex'])->name('employees.bulk');
+        Route::post('/employees/bulk-update', [EmployeeController::class, 'bulkUpdate'])->name('employees.bulk-update');
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{employee}/reset-password', [EmployeeController::class, 'resetPassword'])
             ->name('employees.reset-password');

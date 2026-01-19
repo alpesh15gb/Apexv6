@@ -37,10 +37,12 @@ class EmployeeController extends Controller
     {
         $this->checkAdminAccess();
 
-        $query = User::with(['department', 'designation', 'location', 'shift']);
+        $query = User::with(['department', 'designation', 'location', 'shift'])
+            ->where('role', '!=', 'super_admin');
 
         // Search
-        if ($search = $request->input('search')) {
+        if ($request->has('search')) {
+            $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
@@ -48,9 +50,9 @@ class EmployeeController extends Controller
             });
         }
 
-        // Filter by department
-        if ($departmentId = $request->input('department_id')) {
-            $query->where('department_id', $departmentId);
+        // Filter by Department
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
         }
 
         // Filter by location
@@ -244,5 +246,75 @@ class EmployeeController extends Controller
                 'carried_forward' => 0,
             ]);
         }
+    }
+
+    /**
+     * Show the bulk edit form.
+     */
+    public function bulkIndex(Request $request)
+    {
+        $this->checkAdminAccess();
+
+        $query = User::where('role', '!=', 'super_admin')->where('is_active', true);
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('employee_id', 'like', "%{$search}%");
+            });
+        }
+
+        $employees = $query->orderBy('name')->get();
+
+        $departments = Department::active()->orderBy('name')->get(); // Active only
+        $designations = Designation::active()->orderBy('name')->get();
+        $locations = Location::active()->orderBy('name')->get();
+        $shifts = Shift::where('is_active', true)->orderBy('name')->get();
+        $managers = User::whereIn('role', ['manager', 'hr_admin', 'super_admin'])->active()->orderBy('name')->get();
+
+        return view('admin.employees.bulk', compact('employees', 'departments', 'designations', 'locations', 'shifts', 'managers'));
+    }
+
+    /**
+     * Process bulk update.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $this->checkAdminAccess();
+
+        $request->validate([
+            'employee_ids' => 'required|array',
+            'employee_ids.*' => 'exists:users,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'designation_id' => 'nullable|exists:designations,id',
+            'location_id' => 'nullable|exists:locations,id',
+            'shift_id' => 'nullable|exists:shifts,id',
+            'manager_id' => 'nullable|exists:users,id',
+        ]);
+
+        $updates = [];
+        if ($request->filled('department_id'))
+            $updates['department_id'] = $request->department_id;
+        if ($request->filled('designation_id'))
+            $updates['designation_id'] = $request->designation_id;
+        if ($request->filled('location_id'))
+            $updates['location_id'] = $request->location_id;
+        if ($request->filled('shift_id'))
+            $updates['shift_id'] = $request->shift_id;
+        if ($request->filled('manager_id'))
+            $updates['manager_id'] = $request->manager_id;
+
+        if (empty($updates)) {
+            return back()->with('error', 'No changes selected to apply.');
+        }
+
+        User::whereIn('id', $request->employee_ids)->update($updates);
+
+        return redirect()->route('admin.employees.bulk')->with('success', 'Employees updated successfully.');
     }
 }
