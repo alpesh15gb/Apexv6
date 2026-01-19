@@ -3,12 +3,55 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\Shift;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ShiftController extends Controller
 {
+    /**
+     * Show the bulk shift assignment form.
+     */
+    public function bulkAssign(Request $request)
+    {
+        // Authorization skipped
+
+        $departments = Department::orderBy('name')->get();
+        $shifts = Shift::where('is_active', true)->orderBy('name')->get();
+
+        $query = User::where('role', '!=', 'super_admin')->where('is_active', true);
+
+        if ($request->has('department_id') && $request->department_id) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        $employees = $query->orderBy('name')->get();
+
+        return view('admin.shifts.bulk_assign', compact('employees', 'departments', 'shifts'));
+    }
+
+    /**
+     * Update shifts for multiple employees.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        // Authorization skipped
+
+        $request->validate([
+            'employee_ids' => 'required|array',
+            'employee_ids.*' => 'exists:users,id',
+            'shift_id' => 'required|exists:shifts,id',
+        ]);
+
+        $count = User::whereIn('id', $request->employee_ids)
+            ->update(['shift_id' => $request->shift_id]);
+
+        return redirect()->route('admin.shifts.bulk-assign')
+            ->with('success', "Shift updated successfully for $count employees.");
+    }
+
     /**
      * Display a listing of the shifts.
      */

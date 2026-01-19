@@ -70,6 +70,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('locations', LocationController::class)->except(['show']);
 
         // Shift Management
+        Route::get('/shifts/bulk-assign', [ShiftController::class, 'bulkAssign'])->name('shifts.bulk-assign');
+        Route::post('/shifts/bulk-update', [ShiftController::class, 'bulkUpdate'])->name('shifts.bulk-update');
         Route::resource('shifts', ShiftController::class)->except(['show']);
     });
 
