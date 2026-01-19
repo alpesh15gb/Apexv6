@@ -6,10 +6,12 @@ services:
       dockerfile: Dockerfile
     container_name: apexv6_app
     restart: unless-stopped
+    volumes:
+      - app_data:/var/www/html
     networks:
       - apexv6
 
-  # Nginx Web Server (with config baked into image)
+  # Nginx Web Server
   nginx:
     build:
       context: .
@@ -18,12 +20,14 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+    volumes:
+      - app_data:/var/www/html
     networks:
       - apexv6
     depends_on:
       - app
 
-  # Scheduler Service - Runs attendance sync automatically!
+  # Scheduler Service
   scheduler:
     build:
       context: .
@@ -31,12 +35,14 @@ services:
     container_name: apexv6_scheduler
     restart: unless-stopped
     command: [ "php", "artisan", "schedule:work" ]
+    volumes:
+      - app_data:/var/www/html
     networks:
       - apexv6
     depends_on:
       - app
 
-  # Queue Worker (for notifications)
+  # Queue Worker
   queue:
     build:
       context: .
@@ -44,10 +50,16 @@ services:
     container_name: apexv6_queue
     restart: unless-stopped
     command: [ "php", "artisan", "queue:work", "--sleep=3", "--tries=3" ]
+    volumes:
+      - app_data:/var/www/html
     networks:
       - apexv6
     depends_on:
       - app
+
+volumes:
+  app_data:
+
 
 networks:
   apexv6:
