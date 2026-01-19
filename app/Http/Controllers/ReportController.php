@@ -120,7 +120,14 @@ class ReportController extends Controller
 
         return view('reports.attendance', [
             'reportData' => $reportData,
-// ...
+            'fromDate' => $fromDate,
+            'toDate' => $toDate,
+            'locationId' => $locationId,
+            'departmentId' => $departmentId,
+            'locations' => $locations,
+            'departments' => $departments,
+            'workingDays' => $workingDays,
+        ]);
     }
 
     private function exportAttendanceCSV($reportData, $fromDate, $toDate)
