@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeaveController;
@@ -67,6 +68,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Location Management
         Route::resource('locations', LocationController::class)->except(['show']);
+
+        // Shift Management
+        Route::resource('shifts', ShiftController::class)->except(['show']);
     });
 
     // Profile
