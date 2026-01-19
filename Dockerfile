@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Install system dependencies (including curl FIRST)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     libsqlite3-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install SQL Server drivers (for connecting to SQL Express)
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
@@ -28,34 +29,25 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first (better layer caching)
-COPY composer.json composer.lock ./
-
-# Create required directories
-RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views \
-    && mkdir -p storage/logs \
-    && mkdir -p bootstrap/cache \
-    && mkdir -p database
-
-# Install PHP dependencies (without scripts that might need the full app)
-RUN composer install --optimize-autoloader --no-dev --no-interaction --no-scripts
-
-# Now copy the rest of the application
+# Copy application files
 COPY . .
 
-# Create SQLite database file if it doesn't exist
-RUN touch database/database.sqlite
+# Create required directories and set permissions
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache database \
+    && touch database/database.sqlite \
+    && chmod -R 775 storage bootstrap/cache database
 
-# Run composer scripts now that we have the full app
-RUN composer dump-autoload --optimize
+# Install dependencies with ignore platform reqs (in case of minor version differences)
+RUN composer install --optimize-autoloader --no-dev --no-interaction --ignore-platform-reqs || \
+    (echo "Composer install failed, trying with update..." && composer update --no-dev --no-interaction --ignore-platform-reqs)
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+# Set ownership
+RUN chown -R www-data:www-data /var/www/html
 
 # Expose port
 EXPOSE 9000
