@@ -64,8 +64,27 @@ class SyncDepartments extends Command
             $this->info("Found " . $remoteDepts->count() . " departments.");
 
             foreach ($remoteDepts as $rd) {
-                // Adjust field names based on actual schema (DepartmentFName detected in logs)
-                $name = $rd->DepartmentFName ?? $rd->DepartmentName ?? $rd->DeptName ?? $rd->Name ?? null;
+                $row = (array) $rd;
+                $name = null;
+
+                // Fuzzy match for name column
+                foreach ($row as $key => $value) {
+                    if (str_contains(strtolower($key), 'name') && !str_contains(strtolower($key), 'id')) {
+                        // Prefer FName if available, but take any name field
+                        if ($value && is_string($value) && trim($value) !== '') {
+                            $name = trim($value);
+                            // If key contains FName, it's likely the best one, stop searching
+                            if (str_contains(strtolower($key), 'fname')) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback for known keys if fuzzy failed
+                if (!$name) {
+                    $name = $row['DepartmentFName'] ?? $row['DepartmentName'] ?? $row['DeptName'] ?? $row['Name'] ?? null;
+                }
 
                 if (!$name) {
                     $this->warn("Skipping row with no name: " . json_encode($rd));
@@ -76,7 +95,7 @@ class SyncDepartments extends Command
                     ['name' => $name],
                     [
                         'is_active' => true,
-                        'description' => 'Imported from SQL Server ID: ' . ($rd->DepartmentId ?? '')
+                        'description' => 'Imported from SQL Server ID: ' . ($row['DepartmentId'] ?? $row['DeptId'] ?? $row['Id'] ?? '')
                     ]
                 );
 
