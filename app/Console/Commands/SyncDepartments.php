@@ -64,8 +64,8 @@ class SyncDepartments extends Command
             $this->info("Found " . $remoteDepts->count() . " departments.");
 
             foreach ($remoteDepts as $rd) {
-                // Adjust field names based on common schemas
-                $name = $rd->DepartmentName ?? $rd->DeptName ?? $rd->Name ?? null;
+                // Adjust field names based on actual schema (DepartmentFName detected in logs)
+                $name = $rd->DepartmentFName ?? $rd->DepartmentName ?? $rd->DeptName ?? $rd->Name ?? null;
 
                 if (!$name) {
                     $this->warn("Skipping row with no name: " . json_encode($rd));
@@ -76,7 +76,7 @@ class SyncDepartments extends Command
                     ['name' => $name],
                     [
                         'is_active' => true,
-                        // 'description' => 'Imported from SQL Server ID: ' . ($rd->DepartmentId ?? $rd->DeptId ?? '')
+                        'description' => 'Imported from SQL Server ID: ' . ($rd->DepartmentId ?? '')
                     ]
                 );
 
