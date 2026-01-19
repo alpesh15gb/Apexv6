@@ -276,21 +276,27 @@ class ReportController extends Controller
 
         $date = Carbon::parse($request->input('date', now()));
         $locationId = $request->input('location_id');
+        $departmentId = $request->input('department_id');
 
         // Get all active employees
         $employeesQuery = User::with(['department', 'designation', 'shift'])
             ->active()
-            ->where('role', 'employee');
+            ->where('role', '!=', 'admin')
+            ->where('role', '!=', 'super_admin');
 
         if ($locationId) {
             $employeesQuery->where('location_id', $locationId);
+        }
+
+        if ($departmentId) {
+            $employeesQuery->where('department_id', $departmentId);
         }
 
         if ($user->isManager() && !$user->hasAdminAccess()) {
             $employeesQuery->where('manager_id', $user->id);
         }
 
-        $employees = $employeesQuery->get();
+        $employees = $employeesQuery->orderBy('employee_id')->get();
 
         // Get attendance for the date
         $attendanceMap = Attendance::whereIn('user_id', $employees->pluck('id'))
@@ -340,13 +346,16 @@ class ReportController extends Controller
         ];
 
         $locations = Location::active()->get();
+        $departments = Department::active()->get();
 
         return view('reports.daily', [
             'dailyData' => $dailyData,
             'summary' => $summary,
             'date' => $date,
             'locationId' => $locationId,
+            'departmentId' => $departmentId,
             'locations' => $locations,
+            'departments' => $departments,
         ]);
     }
 

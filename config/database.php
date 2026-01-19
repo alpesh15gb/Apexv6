@@ -109,8 +109,11 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            'encrypt' => env('SQLSRV_ENCRYPT', 'no'),
-            'trust_server_certificate' => env('SQLSRV_TRUST_CERT', 'true'),
+            'encrypt' => 'no',
+            'trust_server_certificate' => 'yes',
+            'options' => [
+                \PDO::SQLSRV_ATTR_CONNECTION_POOLING => false,
+            ],
         ],
 
     ],
