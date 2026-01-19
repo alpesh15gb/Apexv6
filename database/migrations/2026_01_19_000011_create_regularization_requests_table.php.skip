@@ -1,0 +1,53 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('regularization_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('attendance_id');
+            $table->date('date');
+
+            // Current punch times
+            $table->time('current_punch_in')->nullable();
+            $table->time('current_punch_out')->nullable();
+
+            // Requested punch times
+            $table->time('requested_punch_in')->nullable();
+            $table->time('requested_punch_out')->nullable();
+
+            // Request details
+            $table->text('reason');
+            $table->string('attachment')->nullable();
+
+            // Status (pending, approved, rejected)
+            $table->string('status', 15)->default('pending');
+
+            // Approval
+            $table->unsignedBigInteger('approved_by')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->text('rejection_reason')->nullable();
+
+            $table->timestamps();
+
+            $table->index(['user_id', 'status']);
+            $table->foreign('approved_by')->references('id')->on('users')->nullOnDelete();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('regularization_requests');
+    }
+};

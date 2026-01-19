@@ -1,0 +1,174 @@
+<x-app-layout>
+    @section('title', 'Add Employee')
+
+    <x-slot name="header">
+        Add New Employee
+    </x-slot>
+
+    <div class="card bg-base-100 shadow-lg border border-base-300 max-w-4xl">
+        <div class="card-body">
+            <form action="{{ route('admin.employees.store') }}" method="POST">
+                @csrf
+
+                @if($errors->any())
+                    <div class="alert alert-error mb-4">
+                        <ul class="list-disc list-inside">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <!-- Basic Info -->
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Basic Information
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Full Name *</span></label>
+                        <input type="text" name="name" class="input input-bordered @error('name') input-error @enderror"
+                            value="{{ old('name') }}" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Employee ID *</span></label>
+                        <input type="text" name="employee_id"
+                            class="input input-bordered @error('employee_id') input-error @enderror"
+                            value="{{ old('employee_id') }}" placeholder="e.g., EMP001" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Email *</span></label>
+                        <input type="email" name="email"
+                            class="input input-bordered @error('email') input-error @enderror"
+                            value="{{ old('email') }}" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Phone</span></label>
+                        <input type="text" name="phone" class="input input-bordered" value="{{ old('phone') }}">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Gender</span></label>
+                        <select name="gender" class="select select-bordered">
+                            <option value="">Select Gender</option>
+                            <option value="male" {{ old('gender') == 'male' ? 'selected' : '' }}>Male</option>
+                            <option value="female" {{ old('gender') == 'female' ? 'selected' : '' }}>Female</option>
+                            <option value="other" {{ old('gender') == 'other' ? 'selected' : '' }}>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Joining Date *</span></label>
+                        <input type="date" name="joining_date" class="input input-bordered"
+                            value="{{ old('joining_date', date('Y-m-d')) }}" required>
+                    </div>
+                </div>
+
+                <!-- Work Info -->
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Work Information
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Department *</span></label>
+                        <select name="department_id" class="select select-bordered" required>
+                            <option value="">Select Department</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                    {{ $dept->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Designation *</span></label>
+                        <select name="designation_id" class="select select-bordered" required>
+                            <option value="">Select Designation</option>
+                            @foreach($designations as $desig)
+                                <option value="{{ $desig->id }}" {{ old('designation_id') == $desig->id ? 'selected' : '' }}>
+                                    {{ $desig->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Location *</span></label>
+                        <select name="location_id" class="select select-bordered" required>
+                            <option value="">Select Location</option>
+                            @foreach($locations as $loc)
+                                <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>
+                                    {{ $loc->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Shift</span></label>
+                        <select name="shift_id" class="select select-bordered">
+                            <option value="">Default Shift</option>
+                            @foreach($shifts as $shift)
+                                <option value="{{ $shift->id }}" {{ old('shift_id') == $shift->id ? 'selected' : '' }}>
+                                    {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Role *</span></label>
+                        <select name="role" class="select select-bordered" required>
+                            <option value="employee" {{ old('role', 'employee') == 'employee' ? 'selected' : '' }}>
+                                Employee</option>
+                            <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
+                            <option value="hr_admin" {{ old('role') == 'hr_admin' ? 'selected' : '' }}>HR Admin</option>
+                            <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Reporting Manager</span></label>
+                        <select name="manager_id" class="select select-bordered">
+                            <option value="">No Manager</option>
+                            @foreach($managers as $manager)
+                                <option value="{{ $manager->id }}" {{ old('manager_id') == $manager->id ? 'selected' : '' }}>
+                                    {{ $manager->name }} ({{ ucfirst($manager->role) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Default password will be set to <strong>password</strong>. Employee should change it on first
+                        login.</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-2">
+                    <a href="{{ route('admin.employees.index') }}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create Employee
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</x-app-layout>
