@@ -213,6 +213,19 @@
                                         'leave' => 'text-secondary',
                                         'week_off' => 'text-neutral',
                                     ];
+
+                                    // Dynamic Status Calculation
+                                    $currentStatus = $row['status'];
+
+                                    // If marked present but actually late based on NEW shift
+                                    if ($currentStatus === 'present' && $lateBy !== '00:00') {
+                                        $currentStatus = 'late';
+                                    }
+
+                                    // If marked present/late but early going (optional, depends on if you distinguish this)
+                                    // if (($currentStatus === 'present' || $currentStatus === 'late') && $earlyBy !== '00:00') {
+                                    //     $currentStatus = 'half_day'; // or keep as is
+                                    // }
                                 @endphp
                                 <tr class="text-xs">
                                     <td>{{ $index + 1 }}</td>
@@ -226,10 +239,12 @@
                                     <td class="font-mono">{{ $workDur }}</td>
                                     <td class="font-mono">{{ $ot }}</td>
                                     <td class="font-mono font-semibold">{{ $workDur }}</td>
-                                    <td class="font-mono">{{ $lateBy }}</td>
-                                    <td class="font-mono">{{ $earlyBy }}</td>
-                                    <td class="{{ $statusColors[$row['status']] ?? '' }} font-semibold">
-                                        {{ $statusLabels[$row['status']] ?? ucfirst($row['status']) }}
+                                    <td class="font-mono {{ $lateBy !== '00:00' ? 'text-error font-bold' : '' }}">
+                                        {{ $lateBy }}</td>
+                                    <td class="font-mono {{ $earlyBy !== '00:00' ? 'text-warning font-bold' : '' }}">
+                                        {{ $earlyBy }}</td>
+                                    <td class="{{ $statusColors[$currentStatus] ?? '' }} font-semibold">
+                                        {{ $statusLabels[$currentStatus] ?? ucfirst($currentStatus) }}
                                     </td>
                                 </tr>
                             @empty
@@ -309,7 +324,7 @@
         function exportToExcel() {
             // Create workbook
             const wb = XLSX.utils.book_new();
-            
+
             // Build data array with headers
             const data = [
                 ['', '', '', '', '', 'KEYSTONE INFRA PVT LTD', '', '', '', '', '', '', '', ''],
@@ -321,11 +336,11 @@
                 [''],
                 ['SNo', 'E.Code', 'Name', 'Shift', 'S.InTime', 'S.OutTime', 'A.InTime', 'A.OutTime', 'Work Dur.', 'OT', 'Tot.Dur.', 'LateBy', 'EarlyGoingBy', 'Status']
             ];
-            
+
             // Add employee data from table
             const table = document.getElementById('report-table');
             const rows = table.querySelectorAll('tbody tr');
-            
+
             rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
                 if (cells.length > 1) {
@@ -336,7 +351,7 @@
                     data.push(rowData);
                 }
             });
-            
+
             // Add summary row
             data.push(['']);
             data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Total Employees:', '{{ $summary["total"] }}']);
@@ -344,41 +359,41 @@
             data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Late:', '{{ $summary["late"] }}']);
             data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Absent:', '{{ $summary["absent"] }}']);
             data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'On Leave:', '{{ $summary["leave"] }}']);
-            
+
             // Create worksheet
             const ws = XLSX.utils.aoa_to_sheet(data);
-            
+
             // Set column widths
             ws['!cols'] = [
-                {wch: 5},   // SNo
-                {wch: 12},  // E.Code
-                {wch: 25},  // Name
-                {wch: 8},   // Shift
-                {wch: 10},  // S.InTime
-                {wch: 10},  // S.OutTime
-                {wch: 10},  // A.InTime
-                {wch: 10},  // A.OutTime
-                {wch: 10},  // Work Dur
-                {wch: 8},   // OT
-                {wch: 10},  // Tot.Dur
-                {wch: 10},  // LateBy
-                {wch: 12},  // EarlyGoingBy
-                {wch: 10}   // Status
+                { wch: 5 },   // SNo
+                { wch: 12 },  // E.Code
+                { wch: 25 },  // Name
+                { wch: 8 },   // Shift
+                { wch: 10 },  // S.InTime
+                { wch: 10 },  // S.OutTime
+                { wch: 10 },  // A.InTime
+                { wch: 10 },  // A.OutTime
+                { wch: 10 },  // Work Dur
+                { wch: 8 },   // OT
+                { wch: 10 },  // Tot.Dur
+                { wch: 10 },  // LateBy
+                { wch: 12 },  // EarlyGoingBy
+                { wch: 10 }   // Status
             ];
-            
+
             // Merge cells for header
             ws['!merges'] = [
-                {s: {r: 0, c: 5}, e: {r: 0, c: 8}},  // Company name
-                {s: {r: 1, c: 5}, e: {r: 1, c: 8}},  // Report title
-                {s: {r: 2, c: 5}, e: {r: 2, c: 8}}   // Date range
+                { s: { r: 0, c: 5 }, e: { r: 0, c: 8 } },  // Company name
+                { s: { r: 1, c: 5 }, e: { r: 1, c: 8 } },  // Report title
+                { s: { r: 2, c: 5 }, e: { r: 2, c: 8 } }   // Date range
             ];
-            
+
             // Add to workbook
             XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
-            
+
             // Generate filename with date
             const filename = 'Daily_Attendance_Report_{{ $date->format("Y-m-d") }}.xlsx';
-            
+
             // Download file
             XLSX.writeFile(wb, filename);
         }
