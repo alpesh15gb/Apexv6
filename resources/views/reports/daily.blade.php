@@ -307,34 +307,79 @@
         }
 
         function exportToExcel() {
-            // Get table data
-            const table = document.getElementById('report-table');
+            // Create workbook
             const wb = XLSX.utils.book_new();
-
-            // Create header row with company info
-            const headerData = [
-                ['Daily Attendance Report (Detailed Report)'],
-                ['Date: {{ $date->format("d-M-Y") }}'],
-                ['Company: Keystone Infra', '', '', '', '', '', '', '', '', '', '', '', 'Printed: {{ now()->format("d-M-Y H:i") }}'],
-                [] // Empty row
+            
+            // Build data array with headers
+            const data = [
+                ['', '', '', '', '', 'KEYSTONE INFRA PVT LTD', '', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', 'Daily Attendance Report (Detailed Report)', '', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '{{ $date->format("M d Y") }} To {{ $date->format("M d Y") }}', '', '', '', '', '', '', '', ''],
+                [''],
+                ['Company:', 'Keystone Infra', '', '', '', '', '', '', '', '', '', '', 'Printed On:', '{{ now()->format("M d Y H:i") }}'],
+                ['Attendance Date:', '{{ $date->format("d-M-Y") }}', '', '', '', '', '', '', '', '', '', '', '', ''],
+                [''],
+                ['SNo', 'E.Code', 'Name', 'Shift', 'S.InTime', 'S.OutTime', 'A.InTime', 'A.OutTime', 'Work Dur.', 'OT', 'Tot.Dur.', 'LateBy', 'EarlyGoingBy', 'Status']
             ];
-
-            // Get table data
-            const ws = XLSX.utils.table_to_sheet(table);
-
-            // Add header rows at the beginning
-            XLSX.utils.sheet_add_aoa(ws, headerData, { origin: 'A1' });
-
-            // Create new sheet with header + table
-            const finalWs = XLSX.utils.table_to_sheet(table);
-
+            
+            // Add employee data from table
+            const table = document.getElementById('report-table');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 1) {
+                    const rowData = [];
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent.trim());
+                    });
+                    data.push(rowData);
+                }
+            });
+            
+            // Add summary row
+            data.push(['']);
+            data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Total Employees:', '{{ $summary["total"] }}']);
+            data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Present:', '{{ $summary["present"] }}']);
+            data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Late:', '{{ $summary["late"] }}']);
+            data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'Absent:', '{{ $summary["absent"] }}']);
+            data.push(['', '', '', '', '', '', '', '', '', '', '', '', 'On Leave:', '{{ $summary["leave"] }}']);
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Set column widths
+            ws['!cols'] = [
+                {wch: 5},   // SNo
+                {wch: 12},  // E.Code
+                {wch: 25},  // Name
+                {wch: 8},   // Shift
+                {wch: 10},  // S.InTime
+                {wch: 10},  // S.OutTime
+                {wch: 10},  // A.InTime
+                {wch: 10},  // A.OutTime
+                {wch: 10},  // Work Dur
+                {wch: 8},   // OT
+                {wch: 10},  // Tot.Dur
+                {wch: 10},  // LateBy
+                {wch: 12},  // EarlyGoingBy
+                {wch: 10}   // Status
+            ];
+            
+            // Merge cells for header
+            ws['!merges'] = [
+                {s: {r: 0, c: 5}, e: {r: 0, c: 8}},  // Company name
+                {s: {r: 1, c: 5}, e: {r: 1, c: 8}},  // Report title
+                {s: {r: 2, c: 5}, e: {r: 2, c: 8}}   // Date range
+            ];
+            
             // Add to workbook
-            XLSX.utils.book_append_sheet(wb, finalWs, 'Attendance Report');
-
-            // Generate filename
-            const filename = 'Daily_Attendance_{{ $date->format("Y-m-d") }}.xlsx';
-
-            // Download
+            XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
+            
+            // Generate filename with date
+            const filename = 'Daily_Attendance_Report_{{ $date->format("Y-m-d") }}.xlsx';
+            
+            // Download file
             XLSX.writeFile(wb, filename);
         }
     </script>
