@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     gnupg2 \
     apt-transport-https \
+    libsqlite3-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip
 
 # Install SQL Server drivers (for connecting to SQL Express)
-# Using signed-by instead of deprecated apt-key
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/11/prod bullseye main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
@@ -33,14 +33,29 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy application files
+# Copy composer files first (better layer caching)
+COPY composer.json composer.lock ./
+
+# Create required directories
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views \
+    && mkdir -p storage/logs \
+    && mkdir -p bootstrap/cache \
+    && mkdir -p database
+
+# Install PHP dependencies (without scripts that might need the full app)
+RUN composer install --optimize-autoloader --no-dev --no-interaction --no-scripts
+
+# Now copy the rest of the application
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --optimize-autoloader --no-dev --no-interaction
+# Create SQLite database file if it doesn't exist
+RUN touch database/database.sqlite
+
+# Run composer scripts now that we have the full app
+RUN composer dump-autoload --optimize
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
 # Expose port
 EXPOSE 9000
