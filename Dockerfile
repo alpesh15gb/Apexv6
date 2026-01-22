@@ -42,9 +42,11 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
     && touch database/database.sqlite \
     && chmod -R 775 storage bootstrap/cache database
 
-# Install dependencies with ignore platform reqs (in case of minor version differences)
-RUN composer install --optimize-autoloader --no-dev --no-interaction --ignore-platform-reqs || \
-    (echo "Composer install failed, trying with update..." && composer update --no-dev --no-interaction --ignore-platform-reqs)
+# Install dependencies with no scripts (skip artisan commands during build)
+RUN composer install --optimize-autoloader --no-dev --no-interaction --ignore-platform-reqs --no-scripts
+
+# Generate autoload files
+RUN composer dump-autoload --optimize
 
 # Set ownership
 RUN chown -R www-data:www-data /var/www/html
