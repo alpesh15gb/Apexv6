@@ -111,9 +111,9 @@ return [
             'prefix_indexes' => true,
             'encrypt' => 'no',
             'trust_server_certificate' => 'yes',
-            'options' => [
+            'options' => extension_loaded('pdo_sqlsrv') ? [
                 \PDO::SQLSRV_ATTR_CONNECTION_POOLING => false,
-            ],
+            ] : [],
         ],
 
     ],
