@@ -45,9 +45,6 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 # Install dependencies with no scripts (skip artisan commands during build)
 RUN composer install --optimize-autoloader --no-dev --no-interaction --ignore-platform-reqs --no-scripts
 
-# Generate autoload files
-RUN composer dump-autoload --optimize
-
 # Set ownership
 RUN chown -R www-data:www-data /var/www/html
 
