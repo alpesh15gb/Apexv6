@@ -547,6 +547,216 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * List of Logs Report (Monthly timesheet format)
+     */
+    public function logs(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->hasAdminAccess() && !$user->isManager()) {
+            abort(403);
+        }
+
+        $month = (int) $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year);
+        $locationId = $request->input('location_id');
+        $departmentId = $request->input('department_id');
+
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+        // Employees Query
+        $employeesQuery = User::with(['department', 'location', 'designation', 'shift'])
+            ->active()
+            ->where('role', 'employee');
+
+        if ($locationId)
+            $employeesQuery->where('location_id', $locationId);
+        if ($departmentId)
+            $employeesQuery->where('department_id', $departmentId);
+        if ($user->isManager() && !$user->hasAdminAccess()) {
+            $employeesQuery->where('manager_id', $user->id);
+        }
+
+        $employees = $employeesQuery->orderBy('department_id')->orderBy('name')->get();
+        $employeeIds = $employees->pluck('id');
+
+        // Attendance Data
+        $attendances = Attendance::whereIn('user_id', $employeeIds)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get()
+            ->groupBy('user_id');
+
+        // Build logs data
+        $logsData = $employees->map(function ($employee) use ($attendances, $startDate, $year, $month) {
+            $empAtt = $attendances->get($employee->id, collect())->keyBy(fn($a) => $a->date->day);
+
+            $days = [];
+            $totalDuration = 0;
+            $totalOT = 0;
+            $presentCount = 0;
+            $absentCount = 0;
+            $weeklyOffCount = 0;
+            $leaveCount = 0;
+            $lateDays = 0;
+            $earlyDays = 0;
+
+            for ($d = 1; $d <= $startDate->daysInMonth; $d++) {
+                $date = Carbon::create($year, $month, $d);
+                $att = $empAtt->get($d);
+
+                $dayData = [
+                    'date' => $date->format('d'),
+                    'day' => $date->format('D'),
+                    'status' => 'A',
+                    'in_time' => '-',
+                    'out_time' => '-',
+                    'duration' => '-',
+                    'ot' => '-',
+                    'late' => '',
+                    'early' => '',
+                ];
+
+                if ($date->isWeekend()) {
+                    $dayData['status'] = $att ? ($att->status == 'present' || $att->status == 'late' ? 'P' : 'WO') : 'WO';
+                    if ($dayData['status'] == 'WO') {
+                        $weeklyOffCount++;
+                    }
+                }
+
+                if ($att) {
+                    switch ($att->status) {
+                        case 'present':
+                        case 'late':
+                        case 'half_day':
+                            $dayData['status'] = 'P';
+                            $presentCount++;
+                            break;
+                        case 'absent':
+                            $dayData['status'] = 'A';
+                            $absentCount++;
+                            break;
+                        case 'leave':
+                            $dayData['status'] = 'L';
+                            $leaveCount++;
+                            break;
+                        case 'week_off':
+                            $dayData['status'] = 'WO';
+                            break;
+                        case 'holiday':
+                            $dayData['status'] = 'H';
+                            break;
+                        default:
+                            $dayData['status'] = 'A';
+                            $absentCount++;
+                    }
+
+                    $dayData['in_time'] = $att->punch_in_time ? Carbon::parse($att->punch_in_time)->format('H:i') : '-';
+                    $dayData['out_time'] = $att->punch_out_time ? Carbon::parse($att->punch_out_time)->format('H:i') : '-';
+                    $dayData['duration'] = $att->total_hours > 0 ? sprintf('%02d:%02d', floor($att->total_hours), ($att->total_hours - floor($att->total_hours)) * 60) : '-';
+                    $dayData['ot'] = $att->overtime_hours > 0 ? sprintf('%02d:%02d', floor($att->overtime_hours), ($att->overtime_hours - floor($att->overtime_hours)) * 60) : '-';
+                    $dayData['late'] = $att->late_minutes > 0 ? $this->minutesToTime($att->late_minutes) : '';
+                    $dayData['early'] = $att->early_departure_minutes > 0 ? $this->minutesToTime($att->early_departure_minutes) : '';
+
+                    $totalDuration += $att->total_hours * 60;
+                    $totalOT += $att->overtime_hours * 60;
+
+                    if ($att->late_minutes > 0)
+                        $lateDays++;
+                    if ($att->early_departure_minutes > 0)
+                        $earlyDays++;
+                } else {
+                    if (!$date->isWeekend()) {
+                        $absentCount++;
+                    }
+                }
+
+                $days[$d] = (object) $dayData;
+            }
+
+            return (object) [
+                'employee' => $employee,
+                'days' => $days,
+                'summary' => (object) [
+                    'total_duration' => $this->minutesToTime($totalDuration),
+                    'total_ot' => $this->minutesToTime($totalOT),
+                    'present' => $presentCount,
+                    'absent' => $absentCount,
+                    'weekly_off' => $weeklyOffCount,
+                    'leave' => $leaveCount,
+                    'late_days' => $lateDays,
+                    'early_days' => $earlyDays,
+                ]
+            ];
+        });
+
+        // Export CSV if requested
+        if ($request->has('export') && $request->export == 'csv') {
+            return $this->exportLogsCSV($logsData, $startDate->daysInMonth, $month, $year);
+        }
+
+        $locations = Location::active()->get();
+        $departments = Department::active()->get();
+
+        return view('reports.logs', [
+            'logsData' => $logsData,
+            'month' => $month,
+            'year' => $year,
+            'daysInMonth' => $startDate->daysInMonth,
+            'locations' => $locations,
+            'departments' => $departments,
+            'locationId' => $locationId,
+            'departmentId' => $departmentId,
+        ]);
+    }
+
+    private function exportLogsCSV($logsData, $daysInMonth, $month, $year)
+    {
+        $filename = "list_of_logs_{$month}_{$year}.csv";
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        return response()->stream(function () use ($logsData, $daysInMonth) {
+            $handle = fopen('php://output', 'w');
+
+            // Header Row
+            $header = ['Emp ID', 'Name', 'Department'];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $header[] = $d;
+            }
+            $header = array_merge($header, ['Present', 'Absent', 'WO', 'Leave', 'Total Hrs', 'OT']);
+            fputcsv($handle, $header);
+
+            // Data Rows
+            foreach ($logsData as $row) {
+                $data = [
+                    $row->employee->employee_id,
+                    $row->employee->name,
+                    $row->employee->department->name ?? '-',
+                ];
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $data[] = $row->days[$d]->status;
+                }
+                $data = array_merge($data, [
+                    $row->summary->present,
+                    $row->summary->absent,
+                    $row->summary->weekly_off,
+                    $row->summary->leave,
+                    $row->summary->total_duration,
+                    $row->summary->total_ot,
+                ]);
+                fputcsv($handle, $data);
+            }
+            fclose($handle);
+        }, 200, $headers);
+    }
+
     private function minutesToTime($minutes)
     {
         if ($minutes <= 0)

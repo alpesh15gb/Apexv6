@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/attendance', [ReportController::class, 'attendance'])->name('attendance');
         Route::get('/leave', [ReportController::class, 'leave'])->name('leave');
         Route::get('/matrix', [ReportController::class, 'matrix'])->name('matrix');
+        Route::get('/logs', [ReportController::class, 'logs'])->name('logs');
     });
 
     // Admin Routes

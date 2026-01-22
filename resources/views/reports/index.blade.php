@@ -145,5 +145,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- List of Logs Report -->
+        <div class="card bg-base-100 shadow-lg border border-base-300 hover:shadow-xl transition-shadow">
+            <div class="card-body">
+                <div class="flex items-center gap-4">
+                    <div class="p-4 bg-info/10 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-info" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="card-title text-lg">List of Logs</h3>
+                        <p class="text-sm text-base-content/60">Monthly attendance timesheet log</p>
+                    </div>
+                </div>
+                <div class="card-actions justify-end mt-4">
+                    <a href="{{ route('reports.logs') }}" class="btn btn-info btn-sm">View Report</a>
+                </div>
+            </div>
+        </div>
     </div>
 </x-app-layout>
