@@ -111,8 +111,8 @@ return [
             'prefix_indexes' => true,
             'encrypt' => 'no',
             'trust_server_certificate' => 'yes',
-            'options' => extension_loaded('pdo_sqlsrv') ? [
-                \PDO::SQLSRV_ATTR_CONNECTION_POOLING => false,
+            'options' => (extension_loaded('pdo_sqlsrv') && defined('PDO::SQLSRV_ATTR_CONNECTION_POOLING')) ? [
+                constant('PDO::SQLSRV_ATTR_CONNECTION_POOLING') => false,
             ] : [],
         ],
 
