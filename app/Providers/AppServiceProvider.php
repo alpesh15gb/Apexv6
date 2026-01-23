@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.env') !== 'local') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Grant super_admin all permissions
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
             if ($user->role === 'super_admin') {
